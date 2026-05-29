@@ -7,7 +7,7 @@ Supports **manual input and PDF resume upload**.
 ---
 
 ## 🚀 Live Demo
--add Vercel link here
+https://ai-resume-analyzer-kc3ctaadr-anoushka-s-projects.vercel.app/
 
 ---
 
