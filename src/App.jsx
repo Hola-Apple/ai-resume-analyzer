@@ -1,10 +1,62 @@
 import { useState } from "react";
+import * as pdfjsLib from "pdfjs-dist";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.mjs",
+  import.meta.url
+).toString();
 
 export default function App() {
   const [resume, setResume] = useState("");
   const [job, setJob] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fileName, setFileName] = useState("");
+
+  // PDF Upload Handler
+  const handlePdfUpload = async (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      alert("Please upload a PDF file.");
+      return;
+    }
+
+    setFileName(file.name);
+
+    const reader = new FileReader();
+
+    reader.onload = async function () {
+      const typedArray = new Uint8Array(this.result);
+
+      try {
+        const pdf = await pdfjsLib.getDocument(typedArray).promise;
+
+        let extractedText = "";
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+
+          const textContent = await page.getTextContent();
+
+          const pageText = textContent.items
+            .map((item) => item.str)
+            .join(" ");
+
+          extractedText += pageText + " ";
+        }
+
+        setResume(extractedText);
+      } catch (error) {
+        console.error("Error reading PDF:", error);
+        alert("Failed to read PDF.");
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
 
   const analyzeResume = () => {
     setLoading(true);
@@ -106,8 +158,23 @@ export default function App() {
         }}
       />
 
+      {/* PDF Upload */}
+      <div style={{ marginBottom: 15 }}>
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={handlePdfUpload}
+        />
+
+        {fileName && (
+          <p style={{ marginTop: 5 }}>
+            Uploaded: {fileName}
+          </p>
+        )}
+      </div>
+
       <textarea
-        placeholder="Paste Resume here..."
+        placeholder="Paste Resume here or upload PDF..."
         value={resume}
         onChange={(e) => setResume(e.target.value)}
         rows={10}
@@ -147,6 +214,7 @@ export default function App() {
           <p>{result.missingSkills.join(", ") || "None"}</p>
 
           <h3>Suggestions:</h3>
+
           <ul>
             {result.suggestions.map((s, i) => (
               <li key={i}>{s}</li>
